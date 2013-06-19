@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Date;
 import filter.ExcelFilter;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 
 import jxl.Workbook;
 import jxl.read.biff.BiffException;
@@ -19,6 +20,12 @@ public class ExcelCommunication {
 	 * Perfect place for date, time and date n time regex setting in a setting file.
 	 * 
 	 */
+	
+	public static int DATE_COLUMN = 0;
+	public static int TIME_COLUMN = 1;
+	public static int OG_COLUMN = 2;
+	public static int WO_COLUMN =3;
+	
 	private int dateColumn;
 	private int timeColumn;
 	private int excelFileNameLength;
@@ -34,9 +41,10 @@ public class ExcelCommunication {
 
 
 
-	public ExcelCommunication(int dateColumn, int timeColumn) {
-		this.dateColumn = dateColumn;
-		this.timeColumn = timeColumn;
+
+	public ExcelCommunication() {
+		this.dateColumn = DATE_COLUMN;
+		this.timeColumn = TIME_COLUMN;
 	}
 
 
@@ -51,7 +59,14 @@ public class ExcelCommunication {
 		return false;
 	}
 
-
+	public boolean isExcelReady() {
+		if(this.ExcelStream) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 
 	private void initExcelWrite(File excel) {
 		this.copyFile = findSavePath(excel, this.excelFileNameLength);
@@ -71,13 +86,13 @@ public class ExcelCommunication {
 
 
 
-	public int getIndexExcel() {
+	private int getIndexExcel() {
 		return indexExcel;
 	}
 
 
 
-	public void setIndexExcel(int indexExcel) {
+	private void setIndexExcel(int indexExcel) {
 		this.indexExcel = indexExcel;
 	}
 
@@ -89,7 +104,7 @@ public class ExcelCommunication {
 
 
 
-	public Date getDate(int row) {
+	private Date getDate(int row) {
 		System.out.println("rad i excel " + row);
 		String[] date = sheet.getWritableCell(dateColumn, row).getContents().trim().split(dateRegex);
 		String[] time = sheet.getWritableCell(timeColumn, row).getContents().trim().split(timeRegex);
@@ -106,13 +121,13 @@ public class ExcelCommunication {
 
 
 
-	public String getCell(int column, int row) {
+	private String getCell(int column, int row) {
 		return sheet.getWritableCell(column, row).getContents().trim();
 	}
 
 
 
-	public boolean setCell(int column, int row, double value) {
+	private boolean setCell(int column, int row, double value) {
 		Number cell = new Number(column, row, value); 
 
 		//this.indexExcel = row; //lurer på om dette er riktig....
@@ -132,7 +147,7 @@ public class ExcelCommunication {
 
 
 
-	public int getRowLength() {
+	private int getRowLength() {
 		return sheet.getRows();
 	}
 
@@ -192,6 +207,89 @@ public class ExcelCommunication {
 		} while(copyFile.exists());
 
 		return copyFile;
+	}
+	
+	
+	private int findMatchingRow(Date imageDate) throws Exception {
+
+		for(int i = this.getIndexExcel(); i< this.getRowLength(); i++) {
+			if(imageDate.equals(this.getDate(i))) {
+				this.setIndexExcel(i);
+				System.out.println("setter excel index til, og returerer " + i);
+				return i;
+			}
+			else if(imageDate.before(this.getDate(i))) {
+				Object[] valg={this.getDate(i-1).toLocaleString(), this.getDate(i).toLocaleString(), "Ikke log verdi"};
+				String message = "Finner ikke nøyaktig sted å legge verdiene i excelfila \n Hvordan vil du lagre verdi";
+				int result = JOptionPane.showOptionDialog(null, message, "tittel",
+						JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, valg, valg[0]);
+				//HER KAN DET BLI STORE FEIL OM i == 0 og man prøver å finne i -1.. .Dette må fikses!
+				
+				if(result == JOptionPane.YES_OPTION) {
+					return i-1;
+				}
+				else if(result == JOptionPane.NO_OPTION) {
+					return i;
+				}
+				else {
+					return -1;
+				}
+			}
+		}
+		return -1;
+	}
+	
+	
+	public static int findFirstMatchingRow(ExcelCommunication excel, ImageFolderModel images) {
+		Date imageDate = images.getDate(0);
+		Date excelDate = excel.getDate(0);
+
+		if(excelDate.after(imageDate)) {
+			System.out.println("yupp");
+			for(int i = images.getIndex(); i< images.getImageCount(); i++) {
+				imageDate = images.getDate(i);
+				if(excelDate.equals(imageDate) || excelDate.after(imageDate)) {
+					System.out.println(i);
+					images.setIndex(i);
+					return i;
+				}
+			}
+		}
+		else {
+			try {
+				int j = excel.findMatchingRow(imageDate);
+				if(j>=0) {
+					excel.setIndexExcel(j);
+					images.setIndex(j);
+				}
+				else {
+					images.findPictureFiles();
+				}
+				return j;
+			} catch (Exception e) {
+				return -1;
+				
+			}
+		}
+		return 0;
+	}
+	
+	
+	public void logValue(ImageFolderModel images, double valueOW, double valueOG) {
+			int row = -1;
+			try {
+				row = findMatchingRow(images.getDate(images.getIndex()));
+				System.out.println("logvalue rad" +  row);
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			if(row < 0) {
+				return;
+			}
+			
+			this.setCell(WO_COLUMN, row, valueOW);
+			this.setCell(OG_COLUMN, row, valueOG);
 	}
 }
 

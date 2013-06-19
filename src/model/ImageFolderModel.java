@@ -5,7 +5,10 @@ package model;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
@@ -14,21 +17,24 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 
+import measurer.Measurer;
+
 public class ImageFolderModel {
 	private File[] files;
 	private int index = 0;
 	private boolean scaled = false;
 	private BufferedImage img;
-	
-
+	private ImageIcon	imgIcon;
+	private Dimension imgSize = Toolkit.getDefaultToolkit().getScreenSize();
+	private PropertyChangeSupport pcs;
 	
 	public ImageFolderModel() {
-		
+		pcs = new PropertyChangeSupport(this);
 	}
 	
 	
 	
-	public boolean openPicturesFile() {
+	private boolean openPicturesFile() {
 		if(findPictureFiles()) {
 			return true;
 		}
@@ -47,14 +53,17 @@ public class ImageFolderModel {
 	}
 
 	
-	
-	public void iterateIndex(int iterateValue) {
+	private ImageIcon getFullImg() {
+		return this.imgIcon;
+	}
+
+	private void iterateIndex(int iterateValue) {
 		this.index += iterateValue;
 	}
 	
 	
 	
-	public void readImg() {
+	private void readImg() {
 		File file = this.files[this.index];
 		try {
 			this.img = ImageIO.read(file);
@@ -70,7 +79,13 @@ public class ImageFolderModel {
 		return this.files.length;
 	}
 	
-	
+	public void setImageSize(Dimension imgSize) {
+		if(imgSize != null) {
+			this.imgSize = imgSize;
+			pcs.firePropertyChange(Measurer.IMAGE, null, getScaledImage(this.imgSize));
+		}
+		
+	}
 	
 	public boolean isScaled() {
 		return scaled;
@@ -80,8 +95,11 @@ public class ImageFolderModel {
 
 	public void setScaled(boolean scaled) {
 		this.scaled = scaled;
+		ImageIcon icon = this.getScaledImage(imgSize);
+		if(icon != null) {
+			pcs.firePropertyChange(Measurer.IMAGE, null, icon);
+		}
 	}
-	
 	
 	
 	public Date getDate(int index) {
@@ -91,7 +109,9 @@ public class ImageFolderModel {
 	
 	
 	
-	public ImageIcon getScaledImage(int width, int height) {
+	private ImageIcon getScaledImage(Dimension imgSize) {
+		int width = imgSize.width;
+		int height = imgSize.height;
 		System.out.println(this.index);
 		//File file = this.files[this.index];
 		try {
@@ -116,7 +136,7 @@ public class ImageFolderModel {
 	
 	
 	
-	public static Dimension getScaledDimension( int width,int height, Dimension boundary) {
+	private static Dimension getScaledDimension( int width,int height, Dimension boundary) {
 
 	    int originalWidth = width;
 	    int originalHeight = height;
@@ -164,5 +184,52 @@ public class ImageFolderModel {
 		}
 
 		return false;
+	}
+	
+	public boolean isPicturesReady() {
+		if(this.files != null && this.files.length> 0) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	public void iterate(int iterateValue) {
+
+		this.iterateIndex(iterateValue);
+		
+		if(this.getIndex() >= this.getImageCount()) {
+			this.findPictureFiles();
+			this.setIndex(0);
+			// må returne om cancel eller noe...
+		}
+		if(iterateValue < 0) {
+			//setTTPvalues(); wut
+		}
+		else if(iterateValue == 0) {
+			if(this.img != null) {
+				pcs.firePropertyChange(Measurer.IMAGE, null, this.getScaledImage(this.imgSize));
+				return;
+			}
+		}
+		else{
+			//logTTPvalues(); wut
+		}
+		//litt stuff som må endres
+		this.readImg();
+		ImageIcon icon = this.getScaledImage(this.imgSize);
+		this.imgIcon = icon;
+		if(icon != null) {
+			System.out.println("lol");
+			pcs.firePropertyChange(Measurer.IMAGE, null, icon);
+		}
+		else {
+			//something something
+		}
+	}
+	
+	public void addPropertyChangeListener(PropertyChangeListener listener) {
+		pcs.addPropertyChangeListener(listener);
 	}
 }

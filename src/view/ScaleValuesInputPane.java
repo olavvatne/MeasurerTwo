@@ -25,7 +25,7 @@ public class ScaleValuesInputPane {
     private double eOW;
     private double sOG;
     private double eOG;
-    
+    private int state;
     
     
     public ScaleValuesInputPane(double startOW, double endOW, double startOG, double endOG) {
@@ -69,7 +69,7 @@ public class ScaleValuesInputPane {
 				.addComponent(ogPanel)
 		);
 		do {
-			JOptionPane.showConfirmDialog(null, windowPanel, OPTION_PANE_TEXT, JOptionPane.OK_CANCEL_OPTION);
+			this.state = JOptionPane.showConfirmDialog(null, windowPanel, OPTION_PANE_TEXT, JOptionPane.OK_CANCEL_OPTION);
 			
 		} while(!isCorrectValues(startOWField.getText(), endOWField.getText(), startOGField.getText(), endOGField.getText()));   	
 	}
@@ -80,7 +80,14 @@ public class ScaleValuesInputPane {
 		return sOW;
 	}
 
-
+    public boolean isMeasurementsValid() {
+    	if(state == JOptionPane.OK_OPTION) {
+    		return true;
+    	}
+    	else {
+    		return false;
+    	}
+    }
 
 	public double geteOW() {
 		return eOW;
