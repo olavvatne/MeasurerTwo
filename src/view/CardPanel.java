@@ -5,11 +5,13 @@ package view;
 import java.awt.CardLayout;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 
+import measurer.ConfigurationManager;
 import measurer.Measurer;
 import model.ExcelCommunication;
 import model.ImageFolderModel;
@@ -26,16 +28,23 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 	private HelpPanel helpPanel;
 	private ImageFolderModel image;
 	private ExcelCommunication excel;
+	private ConfigurationManager userDefaults;
 	
 	public CardPanel(MeasurementMenu menu) {
 		super();
+		try {
+			this.userDefaults = new ConfigurationManager(Measurer.CONFIG_DEFAULTS, true);
+		} catch (IOException e) {
+			// TODO: handle exception
+		}
+		
 		this.image = new ImageFolderModel();
 		this.excel = new ExcelCommunication();
 		this.menu = menu;
 		this.setupPanel = new SetupPanel(this);
 		this.setupPanel.setImageModel(this.image);
 		this.setupPanel.setExcelModel(this.excel);
-		this.measurementPanel = new MeasurementPanel(this);
+		this.measurementPanel = new MeasurementPanel(this, userDefaults);
 		this.measurementPanel.setImageModel(this.image);
 		this.measurementPanel.setExcelModel(this.excel);
 		menu.addpropertyChangeListener(measurementPanel);
@@ -60,6 +69,12 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 		if(excel.isExcelInputStreamOpen()) {
 			excel.closeAndWriteExcel();
 		}
+		try {
+			userDefaults.save();
+		} catch (IOException e) {
+			// TODO: handle exception
+		}
+		
 		System.exit(0);
 		
 	}

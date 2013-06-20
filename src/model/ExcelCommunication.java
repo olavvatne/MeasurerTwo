@@ -20,12 +20,13 @@ public class ExcelCommunication {
 	 * Perfect place for date, time and date n time regex setting in a setting file.
 	 * 
 	 */
-	
+
 	public static int DATE_COLUMN = 0;
 	public static int TIME_COLUMN = 1;
 	public static int OG_COLUMN = 2;
 	public static int WO_COLUMN =3;
-	
+	public static int FIRST_ENTRY_IN_EXCEL_FILE = 0;
+
 	private int dateColumn;
 	private int timeColumn;
 	private int excelFileNameLength;
@@ -42,31 +43,34 @@ public class ExcelCommunication {
 
 
 
+
 	public ExcelCommunication() {
 		this.dateColumn = DATE_COLUMN;
 		this.timeColumn = TIME_COLUMN;
 	}
 
 
+	public void logValue(ImageFolderModel images, double valueOW, double valueOG) {
+		int row = -1;
+		try {
+			row = findMatchingRow(images.getDate(images.getIndex()));
 
-	public boolean openExcelFile() {
-		if(findExcelFile()) {
-			this.excelFileNameLength =this.excelFile.getName().substring(0, excelFile.getName().length()-4).length();
-			initExcelWrite(this.excelFile);
-			this.ExcelStream = true;
-			return true;
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
-		return false;
+		if(row < 0) {
+			JOptionPane.showMessageDialog(null,
+					"Fant ikke sted i excel å skrive verdiene til. \n Sjekk excel-fil!",
+					"Rad i excel ikke funnet",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+
+		this.setCell(WO_COLUMN, row, valueOW);
+		this.setCell(OG_COLUMN, row, valueOG);
 	}
 
-	public boolean isExcelReady() {
-		if(this.ExcelStream) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
 
 	private void initExcelWrite(File excel) {
 		this.copyFile = findSavePath(excel, this.excelFileNameLength);
@@ -85,8 +89,7 @@ public class ExcelCommunication {
 	}
 
 
-
-	private int getIndexExcel() {
+	public int getIndexExcel() {
 		return indexExcel;
 	}
 
@@ -97,19 +100,42 @@ public class ExcelCommunication {
 	}
 
 
+	private String getCell(int column, int row) {
+		return sheet.getWritableCell(column, row).getContents().trim();
+	}
+
+
+	private boolean setCell(int column, int row, double value) {
+		Number cell = new Number(column, row, value); 
+
+		try {
+			sheet.addCell(cell);
+		} catch (RowsExceededException e) {
+			e.printStackTrace();
+			return false;
+		} catch (WriteException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		return true;
+	}
+
 
 	public boolean isExcelInputStreamOpen() {
 		return this.ExcelStream;
 	}
 
 
+	public Date getCurrentDate() {
+		return this.getDate(this.getIndexExcel());
+	}
+
 
 	private Date getDate(int row) {
-		System.out.println("rad i excel " + row);
+
 		String[] date = sheet.getWritableCell(dateColumn, row).getContents().trim().split(dateRegex);
 		String[] time = sheet.getWritableCell(timeColumn, row).getContents().trim().split(timeRegex);
-		System.out.println(date[0] + " " + date[1] + "  " + date[2]);
-		System.out.println(time[0] + " " + time[1]);
 		try {
 			Date dato = new Date(Integer.parseInt(date[2])+ 100, Integer.parseInt(date[1])-1,
 					Integer.parseInt(date[0]), Integer.parseInt(time[0]), Integer.parseInt(time[1]));
@@ -120,37 +146,30 @@ public class ExcelCommunication {
 	}
 
 
-
-	private String getCell(int column, int row) {
-		return sheet.getWritableCell(column, row).getContents().trim();
-	}
-
-
-
-	private boolean setCell(int column, int row, double value) {
-		Number cell = new Number(column, row, value); 
-
-		//this.indexExcel = row; //lurer på om dette er riktig....
-		try {
-			sheet.addCell(cell);
-		} catch (RowsExceededException e) {
-			e.printStackTrace();
-			return false;
-		} catch (WriteException e) {
-			e.printStackTrace();
-			return false;
-		}
-		System.out.println("lagret:  " +value);
-		System.out.println(sheet.getCell(column, row).getContents()	);
-		return true;
-	}
-
-
-
 	private int getRowLength() {
 		return sheet.getRows();
 	}
 
+
+	public boolean isExcelReady() {
+		if(this.ExcelStream) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+
+	public boolean openExcelFile() {
+		if(findExcelFile()) {
+			this.excelFileNameLength =this.excelFile.getName().substring(0, excelFile.getName().length()-4).length();
+			initExcelWrite(this.excelFile);
+			this.ExcelStream = true;
+			return true;
+		}
+		return false;
+	}
 
 
 	private boolean findExcelFile() {
@@ -172,12 +191,64 @@ public class ExcelCommunication {
 	}
 
 
+	private static File findSavePath( File excel, int initialFileLength) {
+		String copyString = "- copy";
+		int copyInt = 0;
+		File copyFile;
+		do {
+			copyInt ++;
+			copyFile = new File(excel.getParentFile().getAbsolutePath() + "\\"+
+					excel.getName().substring(0, initialFileLength) + copyString+ copyInt+ ".xls");
+		} while(copyFile.exists());
+
+		return copyFile;
+	}
+
+
+	private int findMatchingRow(Date imageDate) throws Exception {
+
+		for(int i = this.getIndexExcel(); i< this.getRowLength(); i++) {
+			if(imageDate.equals(this.getDate(i))) {
+				this.setIndexExcel(i);
+
+				return i;
+			}
+			else if(imageDate.before(this.getDate(i))) {
+				if(i <= FIRST_ENTRY_IN_EXCEL_FILE) {
+					System.out.println("Ops første entry i loggefila!");
+				}
+				else {
+					return entryPlacementInFileDialog(this.getDate(i-1).toLocaleString(), i-1, this.getDate(i).toLocaleString(), i);	
+				}
+			}
+		}
+		return -1;
+	}
+
+
+	private static int entryPlacementInFileDialog(String before, int beforeId,  String after, int afterId) {
+		Object[] valg={before, after, "Ikke log verdi"};
+		String message = "Finner ikke nøyaktig sted å legge verdiene i excelfila \n Hvordan vil du lagre verdi";
+		int result = JOptionPane.showOptionDialog(null, message, "tittel",
+				JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, valg, valg[0]);
+
+		if(result == JOptionPane.YES_OPTION) {
+			return beforeId;
+		}
+		else if(result == JOptionPane.NO_OPTION) {
+			return afterId;
+		}
+		else {
+			return -1;
+		}
+	}
+
+
 	//lagrer det som er gjort til nå og starter opp en ny fil!
 	public void saveExcelFile() {
 		closeAndWriteExcel();
 		initExcelWrite(this.copyFile);
 	}
-
 
 
 	public void closeAndWriteExcel() {
@@ -192,104 +263,6 @@ public class ExcelCommunication {
 			e.printStackTrace();
 		}
 
-	}
-
-
-
-	private static File findSavePath( File excel, int initialFileLength) {
-		String copyString = "- copy";
-		int copyInt = 0;
-		File copyFile;
-		do {
-			copyInt ++;
-			copyFile = new File(excel.getParentFile().getAbsolutePath() + "\\"+
-					excel.getName().substring(0, initialFileLength) + copyString+ copyInt+ ".xls");
-		} while(copyFile.exists());
-
-		return copyFile;
-	}
-	
-	
-	private int findMatchingRow(Date imageDate) throws Exception {
-
-		for(int i = this.getIndexExcel(); i< this.getRowLength(); i++) {
-			if(imageDate.equals(this.getDate(i))) {
-				this.setIndexExcel(i);
-				System.out.println("setter excel index til, og returerer " + i);
-				return i;
-			}
-			else if(imageDate.before(this.getDate(i))) {
-				Object[] valg={this.getDate(i-1).toLocaleString(), this.getDate(i).toLocaleString(), "Ikke log verdi"};
-				String message = "Finner ikke nøyaktig sted å legge verdiene i excelfila \n Hvordan vil du lagre verdi";
-				int result = JOptionPane.showOptionDialog(null, message, "tittel",
-						JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, valg, valg[0]);
-				//HER KAN DET BLI STORE FEIL OM i == 0 og man prøver å finne i -1.. .Dette må fikses!
-				
-				if(result == JOptionPane.YES_OPTION) {
-					return i-1;
-				}
-				else if(result == JOptionPane.NO_OPTION) {
-					return i;
-				}
-				else {
-					return -1;
-				}
-			}
-		}
-		return -1;
-	}
-	
-	
-	public static int findFirstMatchingRow(ExcelCommunication excel, ImageFolderModel images) {
-		Date imageDate = images.getDate(0);
-		Date excelDate = excel.getDate(0);
-
-		if(excelDate.after(imageDate)) {
-			System.out.println("yupp");
-			for(int i = images.getIndex(); i< images.getImageCount(); i++) {
-				imageDate = images.getDate(i);
-				if(excelDate.equals(imageDate) || excelDate.after(imageDate)) {
-					System.out.println(i);
-					images.setIndex(i);
-					return i;
-				}
-			}
-		}
-		else {
-			try {
-				int j = excel.findMatchingRow(imageDate);
-				if(j>=0) {
-					excel.setIndexExcel(j);
-					images.setIndex(j);
-				}
-				else {
-					images.findPictureFiles();
-				}
-				return j;
-			} catch (Exception e) {
-				return -1;
-				
-			}
-		}
-		return 0;
-	}
-	
-	
-	public void logValue(ImageFolderModel images, double valueOW, double valueOG) {
-			int row = -1;
-			try {
-				row = findMatchingRow(images.getDate(images.getIndex()));
-				System.out.println("logvalue rad" +  row);
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			if(row < 0) {
-				return;
-			}
-			
-			this.setCell(WO_COLUMN, row, valueOW);
-			this.setCell(OG_COLUMN, row, valueOG);
 	}
 }
 

@@ -3,13 +3,16 @@ package view;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
 
+import measurer.Measurer;
 import model.ExcelCommunication;
 import model.ImageFolderModel;
 
@@ -22,8 +25,8 @@ public class SetupPanel extends GradientPanel  {
 	private JButton openPicturesButton;
 	private JButton continueButton;
 	private InstructionsPanel instructPanel = new InstructionsPanel();
-	private static ImageIcon check = new ImageIcon("resources/Check-icon.png");
-	private static ImageIcon cross = new ImageIcon("resources/Delete-icon.png");
+	private ImageIcon check = new ImageIcon(Measurer.class.getResource("/Check-icon.png"));
+	private ImageIcon cross = new ImageIcon(Measurer.class.getResource("/Delete-icon.png"));
 	private JLabel excelAcceptPic = new JLabel(cross);
 	private JLabel picturesAcceptPic = new JLabel(cross);
 	private ImageFolderModel imageModel;
@@ -35,6 +38,7 @@ public class SetupPanel extends GradientPanel  {
 		this.setOpaque(false);
 		init();
 		setLayout();
+		
 	}
 	
 	public void setImageModel(ImageFolderModel model) {
@@ -47,27 +51,65 @@ public class SetupPanel extends GradientPanel  {
 	
 	private void openExcelFile() {
 		if(excelModel != null && imageModel != null) {
-			if(excelModel.openExcelFile()) {
-				this.excelAcceptPic.setIcon(check);
-				this.openPicturesButton.requestFocus();
-				if(imageModel.isPicturesReady()) {
-					this.continueButton.setEnabled(true);
+		SwingWorker<Boolean, Void> task = new SwingWorker<Boolean, Void>() {
+
+			@Override
+			protected Boolean doInBackground() throws Exception {
+				// TODO Auto-generated method stub
+				return excelModel.openExcelFile();
+			}
+			
+			public void done() {
+				boolean isReady = false;
+				try {
+					isReady = get();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if(isReady) {
+					excelAcceptPic.setIcon(check);
+					openPicturesButton.requestFocus();
+					if(imageModel.isPicturesReady()) {
+						if(isStartImage()) {
+							continueButton.setEnabled(true);
+						}
+					}
 				}
 			}
+		};
+		
+		task.execute();	
 		}
 	}
 	
 	
 	private void openPicturesFile() {
 		if(imageModel != null && excelModel != null) {
-			if(imageModel.findPictureFiles()) {
+			if(imageModel.openPicturesFolder()) {
 				this.picturesAcceptPic.setIcon(check);
 				this.continueButton.requestFocus();
 				if(excelModel.isExcelReady()) {
-					this.continueButton.setEnabled(true);
+					if(isStartImage()) {
+						this.continueButton.setEnabled(true);
+					}
+					
 				}
 			}
 		}
+	}
+	
+	private boolean isStartImage() {
+		if(imageModel.forwardToSuitableStartImage(excelModel.getCurrentDate())) {
+			return true;
+		}
+		else {
+			this.picturesAcceptPic.setIcon(cross);
+			return false;
+		}	
 	}
 	
 	
@@ -111,7 +153,6 @@ public class SetupPanel extends GradientPanel  {
 			
 			public void actionPerformed(ActionEvent e) {
 				if(isSetupComplete()) {
-					
 					((CardPanel)parent).showMeasurementPanel();
 				}
 				

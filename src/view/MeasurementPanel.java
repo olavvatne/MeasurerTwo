@@ -28,6 +28,7 @@ import javax.swing.JPanel;
 
 
 
+import measurer.ConfigurationManager;
 import measurer.Measurer;
 import model.ExcelCommunication;
 import model.ImageFolderModel;
@@ -43,11 +44,14 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 	private JLabel imageLabel;
 	private LogPanel logPanel;
 	private ThreePhasePanel threePhasePanel;
+	private ConfigurationManager userDefaults;
 	
-	public MeasurementPanel(JPanel parent) {
+	public MeasurementPanel(JPanel parent, ConfigurationManager userDefaults) {
 		this.parent = parent;
+		this.userDefaults = userDefaults;
 		init();
 		setLayout();
+		
 	}
 	
 	public void propertyChange(PropertyChangeEvent evt) {
@@ -62,7 +66,13 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 		}
 		else if(evt.getPropertyName().equals(Measurer.IMAGE)) {
 			setBackgroundImage((ImageIcon)evt.getNewValue());
-			
+			System.out.println("nytt bilde!");
+		}
+		else if(evt.getPropertyName().equals(Measurer.NEW_IMAGE_FOLDER)) {
+			/*if(this.excelModel != null) {
+				imageModel.forwardToSuitableStartImage(excelModel.getCurrentDate());
+			}
+			*/
 		}
 	}
 	
@@ -87,16 +97,19 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 				getTPPanel().getEndValueOW(), getTPPanel().getStartValueOG(), getTPPanel().getEndValueOG());
 		if(dialog.isMeasurementsValid()) {
 			getTPPanel().setStartValueOG(dialog.getsOG());
+			userDefaults.setProperty("startOW", dialog.getsOG()+"");
 			getTPPanel().setEndValueOG(dialog.geteOG());
+			userDefaults.setProperty("endOW", dialog.geteOG()+"");
 			getTPPanel().setStartValueOW(dialog.getsOW());
+			userDefaults.setProperty("startOG", dialog.getsOW()+"");
 			getTPPanel().setEndValueOW(dialog.geteOW());
+			userDefaults.setProperty("endOG", dialog.geteOW()+"");
 			getTPPanel().repaint();
 		}
 	}
 	
 
 	public void setBackgroundImage(ImageIcon img) {
-		System.out.println((img.getIconWidth()));
 		if(img != null) {
 			this.imageLabel.setIcon(img);
 			this.repaint();
@@ -108,15 +121,17 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 	}
 	
 	private void init() {
-		int prefWidth = (int)Toolkit.getDefaultToolkit().getScreenSize().getWidth();
-		this.threePhasePanel = new ThreePhasePanel((prefWidth/2)+10, (int)(prefWidth*0.9), 
-													(prefWidth/2)-10, prefWidth/16);
+		this.threePhasePanel = new ThreePhasePanel(userDefaults.getDoubleProperty("startOW"),
+				userDefaults.getDoubleProperty("endOW"),
+				userDefaults.getDoubleProperty("startOG"),
+				userDefaults.getDoubleProperty("endOG"));
 		
 		this.threePhasePanel.setOpaque(false);	
 		this.layeredPane = new JLayeredPane();
 		this.addMouseListener(threePhasePanel);
 		this.addMouseMotionListener(threePhasePanel);
 		this.imageLabel = new JLabel();
+		this.imageLabel.setBackground(Color.RED);
 		setLayout();
 
 		this.addKeyListener(new KeyAdapter() {

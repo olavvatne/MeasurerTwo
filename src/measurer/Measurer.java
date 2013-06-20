@@ -25,6 +25,8 @@ public class Measurer {
 	public static final String SCALE = "Scale";
 	public static final String LOG = "Log";
 	public static final String IMAGE = "Image";
+	public static final String NEW_IMAGE_FOLDER = "newImages";
+	public static final String CONFIG_DEFAULTS = "config.properties";
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -52,6 +54,7 @@ public class Measurer {
 	}
 	
 	public static void run() {
+		
 		JFrame frame = new JFrame();
 		MeasurementMenu menu = new MeasurementMenu();
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
@@ -59,8 +62,8 @@ public class Measurer {
 		frame.setPreferredSize(sz);// må vekk for at minimering skal faktisk minimere, maximize forårsaker layout krøll med initflytting
 		frame.setLocation(sz.width/10 , sz.height/10);
 		frame.setTitle("innlesning");
-		frame.setIconImage(new ImageIcon("resources/measure.png").getImage());
-		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+		frame.setIconImage(new ImageIcon(Measurer.class.getResource("/measure.png")).getImage());
+		frame.setExtendedState(JFrame.MAXIMIZED_BOTH); //flytter på seg bug
 		frame.setJMenuBar(menu);
 		CardPanel panel = new CardPanel(menu);
 		frame.add(panel);

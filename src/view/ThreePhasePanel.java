@@ -7,11 +7,14 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.text.DecimalFormat;
 import javax.swing.JPanel;
+
+import measurer.ConfigurationManager;
 
 
 public class ThreePhasePanel extends JPanel implements MouseListener, MouseMotionListener {
@@ -21,10 +24,10 @@ public class ThreePhasePanel extends JPanel implements MouseListener, MouseMotio
 	private static Color LIGHT_BLUE = new Color(38, 121, 255);
 	private static Color LIGHT_RED = new Color(225, 38, 38);
 	private final DecimalFormat df =  new DecimalFormat("#0.00");
-	private double startValueOW = 1;
-	private double endValueOW = 18;
-	private double startValueOG = 1;
-	private double endValueOG = 19;
+	private double startValueOW;
+	private double endValueOW;
+	private double startValueOG;
+	private double endValueOG;
 	private int x1OW;
 	private int x2OW;
 	private int x1OG;
@@ -38,11 +41,17 @@ public class ThreePhasePanel extends JPanel implements MouseListener, MouseMotio
 	private boolean isStartOGSelected =false;
 	private boolean isEndOGSelected = false;
 	
-	public ThreePhasePanel(int x1, int x2, int x1OG, int x2OG) {
-		this.x1OW = x1;
-		this.x2OW = x2;
-		this.x1OG = x1OG;
-		this.x2OG = x2OG;
+	public ThreePhasePanel(double startOW, double endOW, double startOG, double endOG) {
+		int prefWidth = (int)Toolkit.getDefaultToolkit().getScreenSize().getWidth();
+		this.x1OW = (prefWidth/2)+10;
+		this.x2OW = (int)(prefWidth*0.9);
+		this.x1OG = (prefWidth/2)-10;
+		this.x2OG = prefWidth/16;
+		this.startValueOW = startOW;
+		this.endValueOW = endOW;
+		this.startValueOG = startOG;
+		this.endValueOG = endOG;
+		
 	}
 	
 	public void setPosOWActive(boolean value) {

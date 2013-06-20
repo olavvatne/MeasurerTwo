@@ -2,10 +2,13 @@ package model;
 
 
 
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -16,10 +19,13 @@ import filter.ImageFilter;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 
 import measurer.Measurer;
 
 public class ImageFolderModel {
+	
 	private File[] files;
 	private int index = 0;
 	private boolean scaled = false;
@@ -34,8 +40,8 @@ public class ImageFolderModel {
 	
 	
 	
-	private boolean openPicturesFile() {
-		if(findPictureFiles()) {
+	public boolean openPicturesFolder() {
+		if(findPictureFiles("Open pictures")) {
 			return true;
 		}
 		return false;
@@ -63,14 +69,15 @@ public class ImageFolderModel {
 	
 	
 	
-	private void readImg() {
-		File file = this.files[this.index];
+	private static BufferedImage readImg(File file) {
+		BufferedImage image = null;
 		try {
-			this.img = ImageIO.read(file);
+			image = ImageIO.read(file);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return image;
 	}
 	
 	
@@ -82,7 +89,7 @@ public class ImageFolderModel {
 	public void setImageSize(Dimension imgSize) {
 		if(imgSize != null) {
 			this.imgSize = imgSize;
-			pcs.firePropertyChange(Measurer.IMAGE, null, getScaledImage(this.imgSize));
+			pcs.firePropertyChange(Measurer.IMAGE, null, getScaledImage(this.imgSize, this.img));
 		}
 		
 	}
@@ -95,7 +102,7 @@ public class ImageFolderModel {
 
 	public void setScaled(boolean scaled) {
 		this.scaled = scaled;
-		ImageIcon icon = this.getScaledImage(imgSize);
+		ImageIcon icon = this.getScaledImage(imgSize, this.img);
 		if(icon != null) {
 			pcs.firePropertyChange(Measurer.IMAGE, null, icon);
 		}
@@ -109,7 +116,7 @@ public class ImageFolderModel {
 	
 	
 	
-	private ImageIcon getScaledImage(Dimension imgSize) {
+	private ImageIcon getScaledImage(Dimension imgSize, BufferedImage img) {
 		int width = imgSize.width;
 		int height = imgSize.height;
 		System.out.println(this.index);
@@ -166,16 +173,17 @@ public class ImageFolderModel {
 	
 	
 	
-	public boolean findPictureFiles() {
+	private boolean findPictureFiles(String title) {
 		File file;
 		final JFileChooser fc = new JFileChooser();
 		fc.setFileFilter(new ImageFilter());
 
 
-		int returnVal = fc.showDialog(null, "Open pictures");
+		int returnVal = fc.showDialog(null, title);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			file = fc.getSelectedFile();
 			this.files = file.getParentFile().listFiles();
+			pcs.firePropertyChange(Measurer.NEW_IMAGE_FOLDER, null, null);
 			return true;
 		}
 		//This is where a real application would open the file.
@@ -187,20 +195,50 @@ public class ImageFolderModel {
 	}
 	
 	public boolean isPicturesReady() {
-		if(this.files != null && this.files.length> 0) {
+		if(this.files != null && this.files.length> 0 ) {
 			return true;
 		}
 		else {
 			return false;
 		}
 	}
+	//bør bruke binærsøk!
+	public boolean forwardToSuitableStartImage(Date initialExcelDate) {
+		Date imageDate = this.getDate(0);
+		boolean suitableStartPointFound = false;
+		
+		if(initialExcelDate.after(imageDate)) {
+			System.out.println("yupp");
+			for(int i = this.getIndex(); i< this.getImageCount() && !suitableStartPointFound; i++) {
+				imageDate = this.getDate(i);
+				
+				if(initialExcelDate.equals(imageDate) || initialExcelDate.before(imageDate)) {
+					suitableStartPointFound = true;
+					this.setIndex(i);
+				}
+			}
+			
+			if(!suitableStartPointFound) {
+				JOptionPane.showMessageDialog(null,
+						"Bildedato passer ikke overens med excelfil!\n velg ny mappe.",
+					    "Bildedato passer ikke",
+					    JOptionPane.WARNING_MESSAGE);
+				this.setIndex(0);
+				return false;
+			}
+			
+		}
+		return true;
+	}
+	
 	
 	public void iterate(int iterateValue) {
 
 		this.iterateIndex(iterateValue);
 		
 		if(this.getIndex() >= this.getImageCount()) {
-			this.findPictureFiles();
+			//"Ikke flere bilder igjen i mappen"
+			this.findPictureFiles("Open pictures");
 			this.setIndex(0);
 			// må returne om cancel eller noe...
 		}
@@ -209,27 +247,44 @@ public class ImageFolderModel {
 		}
 		else if(iterateValue == 0) {
 			if(this.img != null) {
-				pcs.firePropertyChange(Measurer.IMAGE, null, this.getScaledImage(this.imgSize));
+				pcs.firePropertyChange(Measurer.IMAGE, null, this.getScaledImage(this.imgSize, this.img));
 				return;
 			}
 		}
 		else{
 			//logTTPvalues(); wut
 		}
-		//litt stuff som må endres
-		this.readImg();
-		ImageIcon icon = this.getScaledImage(this.imgSize);
-		this.imgIcon = icon;
-		if(icon != null) {
-			System.out.println("lol");
-			pcs.firePropertyChange(Measurer.IMAGE, null, icon);
-		}
-		else {
-			//something something
-		}
+		
+		
+		final File file = this.files[this.index];
+		SwingWorker<ImageIcon, Void> imageTask = new SwingWorker<ImageIcon, Void>() {
+
+			@Override
+			protected ImageIcon doInBackground() throws Exception {
+				BufferedImage image = readImg(file);
+				img = image;
+				return getScaledImage(imgSize, image);
+			}
+			
+			public void done() {
+				ImageIcon icon = null;
+				try {
+					icon = get();
+				} catch (Exception e) {
+					// TODO: handle exception
+				}
+				imgIcon = icon;
+				if(icon != null) {
+					System.out.println("lol");
+					pcs.firePropertyChange(Measurer.IMAGE, null, icon);
+				}
+			}
+		};
+		imageTask.execute();
 	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
 		pcs.addPropertyChangeListener(listener);
 	}
+
 }

@@ -8,15 +8,15 @@ import javax.swing.GroupLayout;
 import javax.swing.JPanel;
 
 public class InstructionsPanel extends JPanel {
-	private static String SAVE_VALUE_STRING = "For å lagre en verdi i excelfilen trykker man space.";
-	private static String INFO_STRING = "For å kunne bruke innleseren må man lage en excel fil med dato (kolonne A) og" +
-			"tid (kolonne B). Denne filen må man finne ved å trykke knappen under. Deretter må man lokalisere bildemappen og" +
-			"åpne første bildet i denne. Da kan man trykke fortsett og verdier avlest fra bildene vil bli skrevet inn i kolonne C og D i exceldokumentet ";
-	private static String DEACTIVATE_STRING = "For å deaktivere målelinjene trykk L";
-	private static String LEFT_STRING = "For å gå frem et bilde uten å lagre trykk venstre piltast";
-	private static String RIGHT_STRING = "For å gå tilbake et bilde trykk høyre piltast";
-	private static String CHANGE_MEASURE_STRING = "For å endre måleverdier til menisken, trykk valg i menyen."
-														+ " Velg deretter <endre måleverdier>, og bestem nye måleverdier";
+	private static String SAVE_VALUE_STRING = "Trykk Space for å lagre verdiene i Excelfil";
+	private static String INFO_STRING = "Ved bruk av innleser må man først konstruere en excelfil med dato (kolonne A) og " +
+			"tid (kolonne B). Lokaliser riktig bildemappe og excelfil. Trykk fortsett. " +
+			"Avleste verdier vil bli lagret (Kolonne C og D) i en kopi av excelfilen etter man har avsluttet";
+	private static String DEACTIVATE_STRING = "Trykk L for å deaktivere målelinjene";
+	private static String LEFT_STRING = "Gå frem et bilde uten lagring ved å trykke venstre piltast";
+	private static String RIGHT_STRING = "Trykk høyre piltast får å gå tilbake et bilde";
+	private static String CHANGE_MEASURE_STRING = "Bestem nye måleverdier. Trykk på valg i meny."
+														+ " Velg deretter <endre måleverdier>";
 	
 	
 	private  TextAndIconPanel saveInst = new TextAndIconPanel(SAVE_VALUE_STRING, "SPACE");
