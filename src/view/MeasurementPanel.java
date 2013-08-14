@@ -15,6 +15,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.prefs.Preferences;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -41,18 +42,19 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 	private ExcelCommunication excelModel;
 	private ImageFolderModel imageModel;
 	private JLayeredPane layeredPane;
-	private JLabel imageLabel;
+	private BackgroundImageLabel imageLabel;
 	private LogPanel logPanel;
 	private ThreePhasePanel threePhasePanel;
-	private ConfigurationManager userDefaults;
+	private Preferences userPrefs;
 	
-	public MeasurementPanel(JPanel parent, ConfigurationManager userDefaults) {
+	public MeasurementPanel(JPanel parent) {
+		userPrefs = Preferences.userRoot().userNodeForPackage(Measurer.class);
 		this.parent = parent;
-		this.userDefaults = userDefaults;
 		init();
 		setLayout();
 		
 	}
+	
 	
 	public void propertyChange(PropertyChangeEvent evt) {
 		if(evt.getPropertyName().equals(Measurer.LOG)) {
@@ -66,14 +68,7 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 		}
 		else if(evt.getPropertyName().equals(Measurer.IMAGE)) {
 			setBackgroundImage((ImageIcon)evt.getNewValue());
-			System.out.println("nytt bilde!");
-		}
-		else if(evt.getPropertyName().equals(Measurer.NEW_IMAGE_FOLDER)) {
-			/*if(this.excelModel != null) {
-				imageModel.forwardToSuitableStartImage(excelModel.getCurrentDate());
-			}
-			*/
-		}
+		}	
 	}
 	
 	
@@ -92,18 +87,19 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 		this.logPanel.setVisible(!logPanel.isVisible());
 	}
 	
+	//kan flyttes til menu men kanskje ikke...
 	public void changeMeasurementDialog() {
 		ScaleValuesInputPane dialog = new ScaleValuesInputPane(getTPPanel().getStartValueOW(),
 				getTPPanel().getEndValueOW(), getTPPanel().getStartValueOG(), getTPPanel().getEndValueOG());
 		if(dialog.isMeasurementsValid()) {
 			getTPPanel().setStartValueOG(dialog.getsOG());
-			userDefaults.setProperty("startOW", dialog.getsOG()+"");
+			userPrefs.putDouble("startOG", dialog.getsOG());
 			getTPPanel().setEndValueOG(dialog.geteOG());
-			userDefaults.setProperty("endOW", dialog.geteOG()+"");
+			userPrefs.putDouble("endOG", dialog.geteOG());
 			getTPPanel().setStartValueOW(dialog.getsOW());
-			userDefaults.setProperty("startOG", dialog.getsOW()+"");
+			userPrefs.putDouble("startOW", dialog.getsOW());
 			getTPPanel().setEndValueOW(dialog.geteOW());
-			userDefaults.setProperty("endOG", dialog.geteOW()+"");
+			userPrefs.putDouble("endOW", dialog.geteOW());
 			getTPPanel().repaint();
 		}
 	}
@@ -121,17 +117,16 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 	}
 	
 	private void init() {
-		this.threePhasePanel = new ThreePhasePanel(userDefaults.getDoubleProperty("startOW"),
-				userDefaults.getDoubleProperty("endOW"),
-				userDefaults.getDoubleProperty("startOG"),
-				userDefaults.getDoubleProperty("endOG"));
+		this.threePhasePanel = new ThreePhasePanel(userPrefs.getDouble("startOW", 1),
+				userPrefs.getDouble("endOW", 18),
+				userPrefs.getDouble("startOG", 1),
+				userPrefs.getDouble("endOG", 18));
 		
 		this.threePhasePanel.setOpaque(false);	
 		this.layeredPane = new JLayeredPane();
 		this.addMouseListener(threePhasePanel);
 		this.addMouseMotionListener(threePhasePanel);
-		this.imageLabel = new JLabel();
-		this.imageLabel.setBackground(Color.RED);
+		this.imageLabel = new BackgroundImageLabel(null);
 		setLayout();
 
 		this.addKeyListener(new KeyAdapter() {
@@ -143,9 +138,10 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 				else if(KeyEvent.VK_RIGHT == e.getKeyCode()) {
 					imageModel.iterate(FORWARD);
 					
+					
 				}
 				else if(KeyEvent.VK_SPACE == e.getKeyCode()) {
-					excelModel.logValue(imageModel, getTPPanel().getValueOW(), getTPPanel().getValueOW());
+					excelModel.logValue(imageModel, getTPPanel().getValueOW(), getTPPanel().getValueOG());
 					imageModel.iterate(FORWARD);
 				}
 				else if(KeyEvent.VK_L == e.getKeyCode()) {

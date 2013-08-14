@@ -164,7 +164,7 @@ public class ThreePhasePanel extends JPanel implements MouseListener, MouseMotio
 		double lineInPixel = getEndLineOW() -getStartLineOW();
 		double lineInValue = getEndValueOW() - getStartValueOW();
 		double lineToPos = getValueLineOW() -getStartLineOW();
-		System.out.println("value OW" + getEndValueOW() + " " + getStartValueOW() + "ferdig verdi"+ (((lineToPos/lineInPixel)*lineInValue)+ startValueOW));
+ 
 		return ((lineToPos/lineInPixel)*lineInValue)+ startValueOW;
 	}
 	

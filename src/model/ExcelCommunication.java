@@ -52,6 +52,7 @@ public class ExcelCommunication {
 
 	public void logValue(ImageFolderModel images, double valueOW, double valueOG) {
 		int row = -1;
+		System.out.println(images.getIndex() + "excelindex " + getIndexExcel());
 		try {
 			row = findMatchingRow(images.getDate(images.getIndex()));
 
@@ -206,8 +207,13 @@ public class ExcelCommunication {
 
 
 	private int findMatchingRow(Date imageDate) throws Exception {
-
-		for(int i = this.getIndexExcel(); i< this.getRowLength(); i++) {
+		int searchStartRow = this.getIndexExcel();
+		if(imageDate.before(this.getDate(searchStartRow))) {
+			searchStartRow = 0;
+		}
+		System.out.println(imageDate.toLocaleString() + "exceldate " + this.getDate(indexExcel).toLocaleString());
+		for(int i = searchStartRow; i< this.getRowLength(); i++) {
+			//System.out.println(i);
 			if(imageDate.equals(this.getDate(i))) {
 				this.setIndexExcel(i);
 
@@ -220,6 +226,9 @@ public class ExcelCommunication {
 				else {
 					return entryPlacementInFileDialog(this.getDate(i-1).toLocaleString(), i-1, this.getDate(i).toLocaleString(), i);	
 				}
+			}
+			else {
+				
 			}
 		}
 		return -1;

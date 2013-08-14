@@ -1,11 +1,12 @@
 package measurer;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
- 
+ //Ikke nødvendig om preferences funker som det skal!
 public class ConfigurationManager {
     private String configFilePath;
     private Properties properties = new Properties();
@@ -16,7 +17,7 @@ public class ConfigurationManager {
         this.isXML = isXML;
         FileInputStream fis = null;
         try {
-            fis = new FileInputStream(configFilePath);
+            fis = new FileInputStream(new File(configFilePath));
             if (isXML) {
                 properties.loadFromXML(fis);
             } else {

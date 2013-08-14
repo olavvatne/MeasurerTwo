@@ -14,6 +14,7 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.IOException;
+import java.lang.instrument.Instrumentation;
 import java.util.Date;
 import filter.ImageFilter;
 import javax.imageio.ImageIO;
@@ -22,15 +23,20 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
+
 import measurer.Measurer;
 
 public class ImageFolderModel {
 	
+	public static final int ZERO_SECONDS_INT = 0;
 	private File[] files;
 	private int index = 0;
 	private boolean scaled = false;
 	private BufferedImage img;
-	private ImageIcon	imgIcon;
 	private Dimension imgSize = Toolkit.getDefaultToolkit().getScreenSize();
 	private PropertyChangeSupport pcs;
 	
@@ -59,10 +65,6 @@ public class ImageFolderModel {
 	}
 
 	
-	private ImageIcon getFullImg() {
-		return this.imgIcon;
-	}
-
 	private void iterateIndex(int iterateValue) {
 		this.index += iterateValue;
 	}
@@ -80,36 +82,80 @@ public class ImageFolderModel {
 		return image;
 	}
 	
+	private void readIconInBackground(final File file) {
+		SwingWorker<ImageIcon, Void> imageTask = new SwingWorker<ImageIcon, Void>() {
+
+			@Override
+			protected ImageIcon doInBackground() throws Exception {
+				return getScaledImage(imgSize, readImg(file));
+			}
+			
+			public void done() {
+				ImageIcon icon = null;
+				try {
+					icon = get();
+				} catch (Exception e) {
+					// TODO: handle exception
+				}
+				//imgIcon = icon;
+				if(icon != null) {
+					pcs.firePropertyChange(Measurer.IMAGE, null, icon);
+				}
+				
+			}
+		};
+		imageTask.execute();
+	}
 	
 	
 	public int getImageCount() {
 		return this.files.length;
 	}
 	
+	
 	public void setImageSize(Dimension imgSize) {
 		if(imgSize != null) {
 			this.imgSize = imgSize;
-			pcs.firePropertyChange(Measurer.IMAGE, null, getScaledImage(this.imgSize, this.img));
+			/*if(this.files != null) {
+				readIconInBackground(this.files[this.index]);
+				//sender oppdatert bilde til stuff
+			}
+			*/
 		}
 		
 	}
+	
 	
 	public boolean isScaled() {
 		return scaled;
 	}
 
 
-
 	public void setScaled(boolean scaled) {
 		this.scaled = scaled;
-		ImageIcon icon = this.getScaledImage(imgSize, this.img);
-		if(icon != null) {
-			pcs.firePropertyChange(Measurer.IMAGE, null, icon);
-		}
+		readIconInBackground(this.files[this.index]);
 	}
 	
 	
 	public Date getDate(int index) {
+		Metadata metadata = null;
+		try {
+			metadata = ImageMetadataReader.readMetadata(files[index]);
+		} catch (ImageProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		if(metadata != null) {
+			ExifSubIFDDirectory directory = metadata.getDirectory(ExifSubIFDDirectory.class);
+			Date date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+			date.setSeconds(ZERO_SECONDS_INT);
+			return date;
+		}
+		
 		long date = files[index].lastModified();
 		return new Date(date- (date%60000)); // fjerner sekundene ... like greitt da 15:01 vil føre til at man plasseres i 1600
 	}
@@ -119,20 +165,21 @@ public class ImageFolderModel {
 	private ImageIcon getScaledImage(Dimension imgSize, BufferedImage img) {
 		int width = imgSize.width;
 		int height = imgSize.height;
-		System.out.println(this.index);
-		//File file = this.files[this.index];
+	
 		try {
 			BufferedImage scaledImage = new BufferedImage( width, height, BufferedImage.TYPE_INT_RGB );
 			Graphics2D gScaledImage = scaledImage.createGraphics();
 			gScaledImage.setRenderingHint( RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED );
-			//BufferedImage img = ImageIO.read(file);
+	
 			Dimension dim = new Dimension(width, height);
-			System.out.println(scaled);
+			
 			if(scaled) {
 				dim = getScaledDimension(img.getWidth(), img.getHeight(), dim);
 			}
 			gScaledImage.drawImage( img,(int) ((width-dim.getWidth())/2),
-					(int)((height-dim.getHeight())/2), (int)dim.getWidth(), (int)dim.getHeight(), null );   
+					(int)((height-dim.getHeight())/2), (int)dim.getWidth(), (int)dim.getHeight(), null ); 
+			gScaledImage.dispose();
+
 			return new ImageIcon(scaledImage);
 			
 		} catch (Exception e) {
@@ -208,7 +255,7 @@ public class ImageFolderModel {
 		boolean suitableStartPointFound = false;
 		
 		if(initialExcelDate.after(imageDate)) {
-			System.out.println("yupp");
+			
 			for(int i = this.getIndex(); i< this.getImageCount() && !suitableStartPointFound; i++) {
 				imageDate = this.getDate(i);
 				
@@ -233,7 +280,6 @@ public class ImageFolderModel {
 	
 	
 	public void iterate(int iterateValue) {
-
 		this.iterateIndex(iterateValue);
 		
 		if(this.getIndex() >= this.getImageCount()) {
@@ -242,46 +288,21 @@ public class ImageFolderModel {
 			this.setIndex(0);
 			// må returne om cancel eller noe...
 		}
+		else if(this.getIndex() < 0) {
+			this.setIndex(0);
+			return;
+		}
 		if(iterateValue < 0) {
 			//setTTPvalues(); wut
 		}
-		else if(iterateValue == 0) {
-			if(this.img != null) {
-				pcs.firePropertyChange(Measurer.IMAGE, null, this.getScaledImage(this.imgSize, this.img));
-				return;
-			}
-		}
+		
 		else{
 			//logTTPvalues(); wut
 		}
 		
-		
-		final File file = this.files[this.index];
-		SwingWorker<ImageIcon, Void> imageTask = new SwingWorker<ImageIcon, Void>() {
-
-			@Override
-			protected ImageIcon doInBackground() throws Exception {
-				BufferedImage image = readImg(file);
-				img = image;
-				return getScaledImage(imgSize, image);
-			}
-			
-			public void done() {
-				ImageIcon icon = null;
-				try {
-					icon = get();
-				} catch (Exception e) {
-					// TODO: handle exception
-				}
-				imgIcon = icon;
-				if(icon != null) {
-					System.out.println("lol");
-					pcs.firePropertyChange(Measurer.IMAGE, null, icon);
-				}
-			}
-		};
-		imageTask.execute();
+		readIconInBackground(this.files[this.index]);
 	}
+	
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
 		pcs.addPropertyChangeListener(listener);

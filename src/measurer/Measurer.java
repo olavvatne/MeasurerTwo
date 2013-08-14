@@ -3,6 +3,7 @@ package measurer;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Toolkit;
+import java.util.prefs.Preferences;
 
 
 import javax.swing.ImageIcon;
@@ -26,7 +27,7 @@ public class Measurer {
 	public static final String LOG = "Log";
 	public static final String IMAGE = "Image";
 	public static final String NEW_IMAGE_FOLDER = "newImages";
-	public static final String CONFIG_DEFAULTS = "config.properties";
+	public static final String OPTIONS = "options";
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -54,7 +55,6 @@ public class Measurer {
 	}
 	
 	public static void run() {
-		
 		JFrame frame = new JFrame();
 		MeasurementMenu menu = new MeasurementMenu();
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();

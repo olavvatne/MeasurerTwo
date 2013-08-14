@@ -6,6 +6,7 @@ import java.awt.CardLayout;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.util.prefs.Preferences;
 
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
@@ -28,15 +29,10 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 	private HelpPanel helpPanel;
 	private ImageFolderModel image;
 	private ExcelCommunication excel;
-	private ConfigurationManager userDefaults;
 	
 	public CardPanel(MeasurementMenu menu) {
 		super();
-		try {
-			this.userDefaults = new ConfigurationManager(Measurer.CONFIG_DEFAULTS, true);
-		} catch (IOException e) {
-			// TODO: handle exception
-		}
+		
 		
 		this.image = new ImageFolderModel();
 		this.excel = new ExcelCommunication();
@@ -44,7 +40,7 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 		this.setupPanel = new SetupPanel(this);
 		this.setupPanel.setImageModel(this.image);
 		this.setupPanel.setExcelModel(this.excel);
-		this.measurementPanel = new MeasurementPanel(this, userDefaults);
+		this.measurementPanel = new MeasurementPanel(this);
 		this.measurementPanel.setImageModel(this.image);
 		this.measurementPanel.setExcelModel(this.excel);
 		menu.addpropertyChangeListener(measurementPanel);
@@ -62,17 +58,16 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 		else if(evt.getPropertyName().equals(Measurer.SAVE)) {
 			save();
 		}
-		
+		else if(evt.getPropertyName().equals(Measurer.OPTIONS)) {
+			
+			//Options skal jeg putte det i measurementMenu?
+			
+		}
 	}
 	
 	public void exitApplication() {
 		if(excel.isExcelInputStreamOpen()) {
 			excel.closeAndWriteExcel();
-		}
-		try {
-			userDefaults.save();
-		} catch (IOException e) {
-			// TODO: handle exception
 		}
 		
 		System.exit(0);
@@ -96,7 +91,6 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 		this.setupPanel.setFocusable(false);
 		this.measurementPanel.requestFocus();
 		this.image.iterate(MeasurementPanel.START_IMG);
-		//ExcelCommunication.findFirstMatchingRow(excel, image);
 	}
 	
 	private void setLayout() {

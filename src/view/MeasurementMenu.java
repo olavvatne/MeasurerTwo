@@ -83,6 +83,17 @@ public class MeasurementMenu extends JMenuBar {
 			});
 			optionMenu.add(logItem);
 			
+			JMenuItem optionsItem = new JMenuItem("Vis valg");
+			optionsItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, ActionEvent.CTRL_MASK));
+			optionsItem.addActionListener(new ActionListener() {
+				
+				public void actionPerformed(ActionEvent e) {
+					propertyChange(Measurer.OPTIONS, null, null);
+				}
+			});
+			
+			optionMenu.add(optionsItem);
+			
 			//third menu
 			JMenu helpMenu = new JMenu("Hjelp");
 			helpMenu.setMnemonic(KeyEvent.VK_H);
