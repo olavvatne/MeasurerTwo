@@ -1,21 +1,27 @@
 package model;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+
 import filter.ExcelFilter;
+
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
 import jxl.Workbook;
 import jxl.read.biff.BiffException;
+import jxl.write.Label;
 import jxl.write.Number;
 import jxl.write.WritableSheet;
 import jxl.write.WritableWorkbook;
 import jxl.write.WriteException;
 import jxl.write.biff.RowsExceededException;
 
-public class ExcelCommunication {
+public class ExcelCommunication implements PropertyChangeListener {
 	/*
 	 * Perfect place for date, time and date n time regex setting in a setting file.
 	 * 
@@ -39,14 +45,12 @@ public class ExcelCommunication {
 	private WritableSheet sheet;
 	private int indexExcel = 0;
 	private boolean ExcelStream;
-
-
-
-
-
+	private PropertyChangeSupport pcs;
+	
 	public ExcelCommunication() {
 		this.dateColumn = DATE_COLUMN;
 		this.timeColumn = TIME_COLUMN;
+		pcs = new PropertyChangeSupport(this);
 	}
 
 
@@ -68,8 +72,10 @@ public class ExcelCommunication {
 			return;
 		}
 
-		this.setCell(WO_COLUMN, row, valueOW);
-		this.setCell(OG_COLUMN, row, valueOG);
+		this.setCell(WO_COLUMN, row, valueOW +"");
+		this.setCell(OG_COLUMN, row, valueOG + "");
+		Object[] object = {getDate(row), valueOG, valueOW, row};
+		this.pcs.firePropertyChange("ADD", null, (Object)object);
 	}
 
 
@@ -106,8 +112,8 @@ public class ExcelCommunication {
 	}
 
 
-	private boolean setCell(int column, int row, double value) {
-		Number cell = new Number(column, row, value); 
+	private boolean setCell(int column, int row, String value) {
+		Label cell = new Label(column, row, value); 
 
 		try {
 			sheet.addCell(cell);
@@ -251,7 +257,10 @@ public class ExcelCommunication {
 			return -1;
 		}
 	}
-
+	
+	public void addPropertyChangeListener(PropertyChangeListener listener) {
+		pcs.addPropertyChangeListener(listener);
+	}
 
 	//lagrer det som er gjort til nå og starter opp en ny fil!
 	public void saveExcelFile() {
@@ -272,6 +281,17 @@ public class ExcelCommunication {
 			e.printStackTrace();
 		}
 
+	}
+
+
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		if(evt.getPropertyName().equals("DELETE")) {
+			this.setCell(WO_COLUMN, (Integer)evt.getNewValue(), "");
+			this.setCell(OG_COLUMN, (Integer)evt.getNewValue(), "");
+			
+		}
+		
 	}
 }
 

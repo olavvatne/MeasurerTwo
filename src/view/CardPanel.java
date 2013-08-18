@@ -16,6 +16,7 @@ import measurer.ConfigurationManager;
 import measurer.Measurer;
 import model.ExcelCommunication;
 import model.ImageFolderModel;
+import model.LogModel;
 
 public class CardPanel extends JPanel implements PropertyChangeListener {
 	
@@ -29,13 +30,16 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 	private HelpPanel helpPanel;
 	private ImageFolderModel image;
 	private ExcelCommunication excel;
+	private LogModel logModel;
 	
 	public CardPanel(MeasurementMenu menu) {
 		super();
 		
-		
+		this.logModel = new LogModel();
 		this.image = new ImageFolderModel();
 		this.excel = new ExcelCommunication();
+		this.excel.addPropertyChangeListener(logModel);
+		this.logModel.addPopertyChangeListener(excel);
 		this.menu = menu;
 		this.setupPanel = new SetupPanel(this);
 		this.setupPanel.setImageModel(this.image);
@@ -43,6 +47,7 @@ public class CardPanel extends JPanel implements PropertyChangeListener {
 		this.measurementPanel = new MeasurementPanel(this);
 		this.measurementPanel.setImageModel(this.image);
 		this.measurementPanel.setExcelModel(this.excel);
+		this.measurementPanel.setLogModel(logModel);
 		menu.addpropertyChangeListener(measurementPanel);
 		this.helpPanel = new HelpPanel(this);
 		setLayout();

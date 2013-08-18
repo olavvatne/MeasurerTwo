@@ -29,10 +29,12 @@ import javax.swing.JPanel;
 
 
 
+
 import measurer.ConfigurationManager;
 import measurer.Measurer;
 import model.ExcelCommunication;
 import model.ImageFolderModel;
+import model.LogModel;
 
 public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 	public final static int START_IMG = 0;
@@ -104,7 +106,10 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 		}
 	}
 	
-
+	public void setLogModel(LogModel model) {
+		this.logPanel.setModel(model);
+	}
+	
 	public void setBackgroundImage(ImageIcon img) {
 		if(img != null) {
 			this.imageLabel.setIcon(img);
@@ -155,6 +160,7 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 		this.setLayout(new BorderLayout());
 		layeredPane = new JLayeredPane();
 		logPanel = new LogPanel();
+		
 		logPanel.setBackground(Color.white);
 		logPanel.setVisible(false);
 
@@ -172,7 +178,8 @@ public class MeasurementPanel extends JPanel implements PropertyChangeListener {
 			public void componentResized(ComponentEvent e) {
 				threePhasePanel.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
 				imageLabel.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
-				logPanel.setBounds(50, 50, 200, layeredPane.getHeight()-150);
+				logPanel.setBounds(50, 50, 300, layeredPane.getHeight()-150);
+				
 				imageModel.setImageSize(layeredPane.getSize());
 			}
 			

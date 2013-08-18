@@ -3,7 +3,7 @@ package measurer;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Toolkit;
-import java.util.prefs.Preferences;
+
 
 
 import javax.swing.ImageIcon;
